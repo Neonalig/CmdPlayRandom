@@ -14,6 +14,7 @@ When running the program for the first time, a default `settings.json` file will
 | --- | --- | --- |
 | Executable | The absolute path to the music player application. | `C:/Program Files (x86)/Windows Media Player/wmplayer.exe` |
 | Args | The supplied arguments. Supports the `$(folder)` variable. | `\\"$(folder)\\" /fullscreen` |
+| DefaultAlbumDirectory | An (optional) directory to default to when no folder is provided. If `null`, the working directory is used instead. | `F:\Music\_Albums` |
 
 ## Installation
 Get the [latest release](../../releases/latest) from the [Releases](../../releases) tab, and extract the `PlayRandom.exe` executable to a known location.
