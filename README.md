@@ -16,7 +16,7 @@ When running the program for the first time, a default `settings.json` file will
 | Args | The supplied arguments. Supports the `$(folder)` variable. | `\\"$(folder)\\" /fullscreen` |
 
 ## Installation
-Get the [latest release](../../../releases/tag/CmdPlayRandom/latest) from the [Releases](../../../releases) tab, and extract the `PlayRandom.exe` executable to a known location.
+Get the [latest release](../../releases/latest) from the [Releases](../../releases) tab, and extract the `PlayRandom.exe` executable to a known location.
 This location must then be [added to the PATH environment variable](adding-the-program-to-path).
 
 ## Manual Installation
