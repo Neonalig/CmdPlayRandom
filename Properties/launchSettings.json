@@ -24,6 +24,9 @@
     "\"F:\\Music\\Albums\\Armikrog\" -b 2": {
       "commandName": "Project",
       "commandLineArgs": "\"F:\\Music\\Albums\\Armikrog\" -b 2"
+    },
+    "No CLI Arguments": {
+      "commandName": "Project"
     }
   }
 }

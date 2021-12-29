@@ -110,7 +110,27 @@ foreach( string Arg in args ) {
     }
 }
 
+
+//Locate the 'settings.json' file and prepare the serialiser.
+JsonSerializer Ser = new JsonSerializer { Formatting = Formatting.Indented };
+FileInfo LocalFile = new FileInfo(Path.Combine(new FileInfo(Assembly.GetExecutingAssembly().Location).DirectoryName!, "settings.json"));
+
+KnownData KD;
+//In the case the 'settings.json' file does not exist, is malformed json data, or does not supply an executable path, we create a default example file and open it in the user's default json text editor.
+if ( !LocalFile.Exists || Read<KnownData>(LocalFile, Ser) is not { } KnData || string.IsNullOrEmpty(KnData.Executable) ) {
+    Write(LocalFile, new KnownData(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Windows Media Player\\wmplayer.exe").Replace('\\', '/'), "\"$(folder)\"", null), Ser);
+    //_ = Process.Start("notepad.exe", $"\"{LocalFile.FullName}\"");
+    _ = Process.Start($"\"{LocalFile.FullName}\"");
+    Environment.Exit(0);
+    return;
+} else {
+    KD = KnData;
+    if (!string.IsNullOrEmpty(KD.DefaultAlbumDirectory) && GetDirectory(KD.DefaultAlbumDirectory, out DirectoryInfo DefAlbDir) ) {
+        Base = DefAlbDir;
+    }
+}
 Base ??= new DirectoryInfo(Environment.CurrentDirectory);
+
 if ( ArgBackSupplied ) {
     if ( ArgBackTimes <= 0 ) { ArgBackTimes = 1; }
     for ( int I = 0; I < ArgBackTimes; I++ ) {
@@ -127,7 +147,7 @@ if ( ArgBackSupplied ) {
 DirectoryInfo[] Options = Base.GetDirectories();
 int Count = Options.Length;
 
-if (Count == 0 ) {
+if ( Count == 0 ) {
     Console.WriteLine("No child directories could be found. Ensure that a directory is given as an argument, or that the application is ran from a main folder containing multiple album directories.");
     Environment.Exit(0);
     return;
@@ -137,19 +157,6 @@ if (Count == 0 ) {
 DirectoryInfo UserChosen = Count == 0 ? Options[0] : GetRandom(Options, Count, null, new Random());
 Console.WriteLine($"Will play from '{UserChosen.Name}'.");
 
-//Locate the 'settings.json' file and prepare the serialiser.
-JsonSerializer Ser = new JsonSerializer { Formatting = Formatting.Indented };
-FileInfo LocalFile = new FileInfo(Path.Combine(new FileInfo(Assembly.GetExecutingAssembly().Location).DirectoryName!, "settings.json"));
-
-//In the case the 'settings.json' file does not exist, is malformed json data, or does not supply an executable path, we create a default example file and open it in the user's default json text editor.
-if ( !LocalFile.Exists || Read<KnownData>(LocalFile, Ser) is not var (Executable, Args) || string.IsNullOrEmpty(Executable) ) {
-    Write(LocalFile, new KnownData(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Windows Media Player\\wmplayer.exe").Replace('\\', '/'), "\"$(folder)\""), Ser);
-    //_ = Process.Start("notepad.exe", $"\"{LocalFile.FullName}\"");
-    _ = Process.Start($"\"{LocalFile.FullName}\"");
-    Environment.Exit(0);
-    return;
-}
-
 //If the 'settings.json' file is valid, we start the supplied executable and arguments, replacing $(folder) with the chosen folder name.
-_ = Process.Start(Executable.Replace('/', '\\').Trim(' '), Args.Replace("$(folder)", UserChosen.FullName));
+_ = Process.Start(KD.Executable.Replace('/', '\\').Trim(' '), KD.Args.Replace("$(folder)", UserChosen.FullName));
 Environment.Exit(0);
