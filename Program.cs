@@ -1,5 +1,5 @@
-﻿using System.Diagnostics;
-using System.Reflection;
+﻿using System.ComponentModel;
+using System.Diagnostics;
 
 using Newtonsoft.Json;
 
@@ -50,6 +50,9 @@ DirectoryInfo GetRandom( DirectoryInfo[] Possible, int Cnt, int? Last, Random Rn
                 return Chosen;
             case ConsoleKey.N:
                 return GetRandom(Possible, Cnt, ChosenInd, Rnd);
+            case ConsoleKey.Escape:
+                Environment.Exit(0);
+                return null!;
         }
     }
 }
@@ -113,14 +116,26 @@ foreach( string Arg in args ) {
 
 //Locate the 'settings.json' file and prepare the serialiser.
 JsonSerializer Ser = new JsonSerializer { Formatting = Formatting.Indented };
-FileInfo LocalFile = new FileInfo(Path.Combine(new FileInfo(Assembly.GetExecutingAssembly().Location).DirectoryName!, "settings.json"));
+FileInfo LocalFile = new FileInfo(Path.Combine(new FileInfo(Process.GetCurrentProcess().MainModule?.FileName!).DirectoryName!, "settings.json"));
 
 KnownData KD;
 //In the case the 'settings.json' file does not exist, is malformed json data, or does not supply an executable path, we create a default example file and open it in the user's default json text editor.
 if ( !LocalFile.Exists || Read<KnownData>(LocalFile, Ser) is not { } KnData || string.IsNullOrEmpty(KnData.Executable) ) {
     Write(LocalFile, new KnownData(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Windows Media Player\\wmplayer.exe").Replace('\\', '/'), "\"$(folder)\"", null), Ser);
     //_ = Process.Start("notepad.exe", $"\"{LocalFile.FullName}\"");
-    _ = Process.Start($"\"{LocalFile.FullName}\"");
+    try {
+        _ = Process.Start($"\"{LocalFile.FullName}\"");
+    } catch (Win32Exception) { //Thrown when no default '.json' editor is specified for the OS
+        //"%windir%/system32/notepad.exe"
+        FileInfo Notepad = new FileInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "system32", "notepad.exe"));
+        if ( !Notepad.Exists ) {
+            Console.WriteLine($"No default .json or text editor assigned. Please open \"{LocalFile.FullName}\" in your preferred text editing application.");
+            _ = Console.ReadKey();
+
+        } else {
+            _ = Process.Start(Notepad.FullName, $"\"{LocalFile.FullName}\"");
+        }
+    }
     Environment.Exit(0);
     return;
 } else {
