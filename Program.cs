@@ -35,7 +35,25 @@ int GetRandomNotIncluding( Random Rnd, int Min, int Max, int Exc ) {
     return Rnd.Next(0, 2) == 0 ? Rnd.Next(Min, Exc) : Rnd.Next(Exc + 1, Max);
 }
 
-//Gets a random directory form the collection, allowing a 'Last' value to be passed to ensure the user is never offered the same directory twice in a row.
+//Gets the highest likely directory from the user's query in the collection.
+DirectoryInfo GetTyped( IEnumerable<DirectoryInfo> Possible, string Query ) {
+    Query = Query.ToUpperInvariant();
+    SortedDictionary<int, List<DirectoryInfo>> Dict = new SortedDictionary<int, List<DirectoryInfo>>();
+    foreach ( DirectoryInfo Poss in Possible ) {
+        int Ratio = FuzzySharp.Fuzz.WeightedRatio(Poss.Name.ToUpperInvariant(), Query);
+        if ( Dict.ContainsKey(Ratio) ) {
+            Dict[Ratio].Add(Poss);
+        } else {
+            Dict.Add(Ratio, new List<DirectoryInfo> { Poss });
+        }
+    }
+    //foreach ( (int Rat, List<DirectoryInfo> Ls) in Dict ) {
+    //    Console.WriteLine($"{Rat}:: '{string.Join("', '", Ls.Select(D => D.Name))}'");
+    //}
+    return Dict.Last().Value.First();
+}
+
+//Gets a random directory from the collection, allowing a 'Last' value to be passed to ensure the user is never offered the same directory twice in a row.
 DirectoryInfo GetRandom( DirectoryInfo[] Possible, int Cnt, int? Last, Random Rnd ) {
     Debug.WriteLine($"Choosing between 0..{Cnt} (excluding {Last})");
     int ChosenInd = Last.HasValue ? GetRandomNotIncluding(Rnd, 0, Cnt, Last.Value) : Rnd.Next(0, Cnt);
@@ -44,12 +62,24 @@ DirectoryInfo GetRandom( DirectoryInfo[] Possible, int Cnt, int? Last, Random Rn
     while ( true ) {
         Console.Write($"Play from '{Chosen.Name}'? [Y]es/[N]o: ");
         ConsoleKey Input = Console.ReadKey().Key;
+        //Console.Write($"key '{Input}/{(int)Input}'");
         Console.Write('\n');
         switch ( Input ) {
             case ConsoleKey.Y:
                 return Chosen;
             case ConsoleKey.N:
                 return GetRandom(Possible, Cnt, ChosenInd, Rnd);
+            case ConsoleKey.Oem2:
+                Console.Write("Type a directory to play from: ");
+                string? UserInput = Console.ReadLine();
+                if ( UserInput is null ) {
+                    Environment.Exit(0);
+                    return null!;
+                }
+                DirectoryInfo Result = GetTyped(Possible, UserInput);
+                Console.Write('\n');
+                return Result;
+            //case ConsoleKey.
             case ConsoleKey.Escape:
                 Environment.Exit(0);
                 return null!;
