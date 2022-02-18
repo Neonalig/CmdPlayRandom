@@ -1,12 +1,16 @@
 # CmdPlayRandom
+> A child of [CmdUtils](../../../CmdUtils/).
+
 Allows users to play random albums from a given master directory.
 
 ## Usage
 `> playrandom [folder](optional)`
+
 **Example #1:** `> playrandom`
-The above example will open the song picker from the current working directory.
+<br/>The above example will open the song picker from the current working directory.
+
 **Example #2:** `> playrandom "F:\\Music\\Albums"`
-The above example will open the song picker from the supplied directory.
+<br/>The above example will open the song picker from the supplied directory.
 
 ---
 When running the program for the first time, a default `settings.json` file will be created. This file allows you to change which music player is used by default, and add any additional arguments as required. The two json keys are as follows:
@@ -18,7 +22,7 @@ When running the program for the first time, a default `settings.json` file will
 
 ## Installation
 Get the [latest release](../../../releases/tag/CmdPlayRandom/latest) from the [Releases](../../../releases) tab, and extract the `PlayRandom.exe` executable to a known location.
-This location must then be [added to the PATH environment variable](adding-the-program-to-path).
+<br/>This location must then be [added to the PATH environment variable](adding-the-program-to-path).
 
 ## Manual Installation
 1. Clone this repository using your preferred method (`git clone`, [GitHub Desktop](https://desktop.github.com/), [GitKraken](https://gitkraken.com/), and so on...)
