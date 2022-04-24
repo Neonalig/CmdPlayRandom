@@ -36,25 +36,25 @@ int GetRandomNotIncluding( Random Rnd, int Min, int Max, int Exc ) {
 }
 
 //Gets the highest likely directory from the user's query in the collection.
-DirectoryInfo GetTyped( IEnumerable<DirectoryInfo> Possible, string Query ) {
+T GetTyped<T>( IEnumerable<T> Possible, string Query ) where T : FileSystemInfo {
     Query = Query.ToUpperInvariant();
-    SortedDictionary<int, List<DirectoryInfo>> Dict = new SortedDictionary<int, List<DirectoryInfo>>();
-    foreach ( DirectoryInfo Poss in Possible ) {
+    SortedDictionary<int, List<T>> Dict = new SortedDictionary<int, List<T>>();
+    foreach ( T Poss in Possible ) {
         int Ratio = FuzzySharp.Fuzz.WeightedRatio(Poss.Name.ToUpperInvariant(), Query);
         if ( Dict.ContainsKey(Ratio) ) {
             Dict[Ratio].Add(Poss);
         } else {
-            Dict.Add(Ratio, new List<DirectoryInfo> { Poss });
+            Dict.Add(Ratio, new List<T> { Poss });
         }
     }
-    //foreach ( (int Rat, List<DirectoryInfo> Ls) in Dict ) {
+    //foreach ( (int Rat, List<T> Ls) in Dict ) {
     //    Console.WriteLine($"{Rat}:: '{string.Join("', '", Ls.Select(D => D.Name))}'");
     //}
     return Dict.Last().Value.First();
 }
 
 //Gets a random directory from the collection, allowing a 'Last' value to be passed to ensure the user is never offered the same directory twice in a row.
-DirectoryInfo GetRandom( DirectoryInfo[] Possible, int Cnt, int? Last, Random Rnd ) {
+FileSystemInfo GetRandom( DirectoryInfo Root, DirectoryInfo[] Possible, int Cnt, int? Last, Random Rnd ) {
     Debug.WriteLine($"Choosing between 0..{Cnt} (excluding {Last})");
     int ChosenInd = Last.HasValue ? GetRandomNotIncluding(Rnd, 0, Cnt, Last.Value) : Rnd.Next(0, Cnt);
     Debug.WriteLine($"\tChose {ChosenInd}");
@@ -65,22 +65,27 @@ DirectoryInfo GetRandom( DirectoryInfo[] Possible, int Cnt, int? Last, Random Rn
         //Console.Write($"key '{Input}/{(int)Input}'");
         Console.Write('\n');
         switch ( Input ) {
-            case ConsoleKey.Y:
+            case ConsoleKey.Y: // 'y' indicates the user wants to play from this directory.
                 return Chosen;
-            case ConsoleKey.N:
-                return GetRandom(Possible, Cnt, ChosenInd, Rnd);
-            case ConsoleKey.Oem2:
+            case ConsoleKey.N: // 'n' indicates the user wants to play from a different directory. (Another option is just to press enter)
+                return GetRandom(Root, Possible, Cnt, ChosenInd, Rnd);
+            case ConsoleKey.Oem2: { // '/' key indicates the user will type a specific directory name.
                 Console.Write("Type a directory to play from: ");
                 string? UserInput = Console.ReadLine();
-                if ( UserInput is null ) {
-                    Environment.Exit(0);
-                    return null!;
-                }
+                if ( UserInput is null ) { break; }
                 DirectoryInfo Result = GetTyped(Possible, UserInput);
                 Console.Write('\n');
                 return Result;
-            //case ConsoleKey.
-            case ConsoleKey.Escape:
+            }
+            case ConsoleKey.Oem1: { // ';' key indicates the user will type a specific .m3u(8) file name.
+                Console.Write("Type a playlist file to play from: ");
+                string? UserInput = Console.ReadLine();
+                if ( UserInput is null ) { break; } // The '*.m3u?' wildcard below matches both '.m3u' and '.m3u8'
+                FileInfo Result = GetTyped(Root.EnumerateFiles("*.m3u?", SearchOption.AllDirectories), UserInput);
+                Console.Write('\n');
+                return Result;
+            }
+            case ConsoleKey.Escape: // 'Esc' indicates the user wishes to quit the application.
                 Environment.Exit(0);
                 return null!;
         }
@@ -199,9 +204,10 @@ if ( Count == 0 ) {
 }
 
 //Get the user to choose an album directory at random. The method ensures the user is never supplied the same directory twice. In the case there is only one directory, we will always use that regardless.
-DirectoryInfo UserChosen = Count == 0 ? Options[0] : GetRandom(Options, Count, null, new Random());
+FileSystemInfo UserChosen = Count == 0 ? Options[0] : GetRandom(Base, Options, Count, null, new Random());
 Console.WriteLine($"Will play from '{UserChosen.Name}'.");
 
 //If the 'settings.json' file is valid, we start the supplied executable and arguments, replacing $(folder) with the chosen folder name.
+//TODO: Update $(folder) variable to $(source) as the application now supports both directories and playlist files. WARNING: This is a breaking change.
 _ = Process.Start(KD.Executable.Replace('/', '\\').Trim(' '), KD.Args.Replace("$(folder)", UserChosen.FullName));
 Environment.Exit(0);
